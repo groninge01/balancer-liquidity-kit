@@ -17,7 +17,7 @@ describe('V3 boosted proportional remove liquidity', () => {
     await expect(
       quoteV3BoostedProportionalRemoval({
         pool: poolState,
-        chainId: 999,
+        chainId: 99999,
         rpcUrl: '',
         sender: poolState.address,
         recipient: poolState.address,
@@ -25,7 +25,7 @@ describe('V3 boosted proportional remove liquidity', () => {
         tokensOut: [poolState.tokens[0].address, poolState.tokens[1].address],
         slippage: { percentage: '1' },
       }),
-    ).rejects.toThrow('Chain 999')
+    ).rejects.toThrow('Chain 99999')
   })
 
   it('rejects zero bptIn', async () => {

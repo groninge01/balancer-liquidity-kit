@@ -36,14 +36,14 @@ describe('V2 stable add liquidity', () => {
     await expect(
       quoteV2StableAddLiquidity({
         pool: poolState,
-        chainId: 999,
+        chainId: 99999,
         rpcUrl: '',
         sender: poolState.address,
         recipient: poolState.address,
         amountsIn: [{ address: poolState.tokens[0].address, decimals: 6, rawAmount: 1n }],
         slippage: { percentage: '1' },
       }),
-    ).rejects.toThrow('Chain 999')
+    ).rejects.toThrow('Chain 99999')
   })
 
   it('uses unbalanced add liquidity kind', () => {
