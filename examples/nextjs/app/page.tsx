@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { parseUnits, formatUnits } from 'viem'
+import { useAccount, useConnect, useDisconnect, useWalletClient, usePublicClient } from 'wagmi'
 import {
   createV3WeightedPoolState,
   quoteV3WeightedAddLiquidity,
@@ -24,20 +25,28 @@ const POOL: V3WeightedPool = createV3WeightedPoolState({
 })
 
 export default function Page() {
+  const { address, isConnected } = useAccount()
+  const { connectors, connect } = useConnect()
+  const { disconnect } = useDisconnect()
+  const walletClient = useWalletClient()
+  const publicClient = usePublicClient()
+
   const [amounts, setAmounts] = useState<string[]>(['', ''])
   const [slippage, setSlippage] = useState('1')
-  const [sender, setSender] = useState('0x0000000000000000000000000000000000000001')
-  const [recipient, setRecipient] = useState('0x0000000000000000000000000000000000000001')
   const [quote, setQuote] = useState<AddLiquidityQuote | undefined>()
   const [plan, setPlan] = useState<AddLiquidityPlan | undefined>()
   const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | undefined>()
+  const [txHash, setTxHash] = useState<string | undefined>()
 
   async function handleQuote() {
+    if (!address) return
     setLoading(true)
     setError(undefined)
     setQuote(undefined)
     setPlan(undefined)
+    setTxHash(undefined)
     try {
       const amountsIn = POOL.tokens.map((token, i) => ({
         address: token.address as `0x${string}`,
@@ -49,8 +58,8 @@ export default function Page() {
         pool: POOL,
         chainId: 11155111,
         rpcUrl: SEPOLIA_RPC,
-        sender: sender as `0x${string}`,
-        recipient: recipient as `0x${string}`,
+        sender: address,
+        recipient: address,
         amountsIn,
         slippage: { percentage: slippage as `${number}` },
       }
@@ -66,9 +75,52 @@ export default function Page() {
     }
   }
 
+  async function handleSend() {
+    if (!plan || !walletClient.data || !publicClient) return
+    setSending(true)
+    setError(undefined)
+    setTxHash(undefined)
+    try {
+      const hash = await walletClient.data.sendTransaction({
+        to: plan.call.to,
+        data: toHexCallData(plan.call),
+        value: plan.call.value,
+        account: address!,
+      })
+      setTxHash(hash)
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      if (receipt.status === 'reverted') {
+        setError('Transaction reverted')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <div>
       <h1>Balancer Liquidity Kit — Add Liquidity</h1>
+
+      <div className="card">
+        <h2>Wallet</h2>
+        {!isConnected ? (
+          <div className="input-group">
+            <label>Connect wallet</label>
+            {connectors.map((connector) => (
+              <button key={connector.uid} onClick={() => connect({ connector })} style={{ marginRight: '0.5rem' }}>
+                {connector.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <p className="status">Connected: {address}</p>
+            <button onClick={() => disconnect()}>Disconnect</button>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h2>V3 Weighted — Sepolia</h2>
@@ -77,43 +129,37 @@ export default function Page() {
         <p className="status">Pool URL: https://test.balancer.fi/pools/sepolia/v3/0x86fde41ff01b35846eb2f27868fb2938addd44c4</p>
       </div>
 
-      <div className="card">
-        <h2>Token Amounts</h2>
-        {POOL.tokens.map((token, i) => (
-          <div key={i} className="input-group">
-            <label>{token.symbol} ({token.decimals} decimals)</label>
-            <div className="token-row">
-              <input
-                value={amounts[i] ?? ''}
-                onChange={(e) => {
-                  const next = [...amounts]
-                  next[i] = e.target.value
-                  setAmounts(next)
-                }}
-                placeholder="0.0"
-                type="number"
-                step="any"
-              />
-              <span>{token.symbol}</span>
+      {isConnected && (
+        <div className="card">
+          <h2>Token Amounts</h2>
+          {POOL.tokens.map((token, i) => (
+            <div key={i} className="input-group">
+              <label>{token.symbol} ({token.decimals} decimals)</label>
+              <div className="token-row">
+                <input
+                  value={amounts[i] ?? ''}
+                  onChange={(e) => {
+                    const next = [...amounts]
+                    next[i] = e.target.value
+                    setAmounts(next)
+                  }}
+                  placeholder="0.0"
+                  type="number"
+                  step="any"
+                />
+                <span>{token.symbol}</span>
+              </div>
             </div>
+          ))}
+          <div className="input-group">
+            <label>Slippage (%)</label>
+            <input value={slippage} onChange={(e) => setSlippage(e.target.value)} type="number" step="any" />
           </div>
-        ))}
-        <div className="input-group">
-          <label>Slippage (%)</label>
-          <input value={slippage} onChange={(e) => setSlippage(e.target.value)} type="number" step="any" />
+          <button onClick={handleQuote} disabled={loading}>
+            {loading ? 'Quoting...' : 'Get Quote & Build Plan'}
+          </button>
         </div>
-        <div className="input-group">
-          <label>Sender Address</label>
-          <input value={sender} onChange={(e) => setSender(e.target.value)} />
-        </div>
-        <div className="input-group">
-          <label>Recipient Address</label>
-          <input value={recipient} onChange={(e) => setRecipient(e.target.value)} />
-        </div>
-        <button onClick={handleQuote} disabled={loading}>
-          {loading ? 'Quoting...' : 'Get Quote & Build Plan'}
-        </button>
-      </div>
+      )}
 
       {error && (
         <div className="card">
@@ -145,6 +191,21 @@ export default function Page() {
               Token {a.token} → Spender {a.spender}: {a.amount.toString()}
             </p>
           ))}
+          <div style={{ marginTop: '1rem' }}>
+            <button onClick={handleSend} disabled={sending || !walletClient.data}>
+              {sending ? 'Sending...' : 'Send Transaction'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {txHash && (
+        <div className="card">
+          <h2>Transaction Sent</h2>
+          <p className="success">Hash: {txHash}</p>
+          <p className="status">
+            View on Etherscan: <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>sepolia.etherscan.io/tx/{txHash.slice(0, 10)}...</a>
+          </p>
         </div>
       )}
     </div>
