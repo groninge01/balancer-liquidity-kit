@@ -299,7 +299,7 @@ export default function Page() {
         <div className="card">
           <h2>Transaction Plan</h2>
           <p className="status">To: {plan.call.to}</p>
-          <p className="status">Value: {plan.call.value.toString()}</p>
+          <p className="status">Value: {formatUnits(plan.call.value, 18)}</p>
           <p className="status">Min BPT out: {formatUnits(plan.call.minBptOut.amount, plan.call.minBptOut.token.decimals)}</p>
           <p className="status">Calldata: {toHexCallData(plan.call).slice(0, 66)}...</p>
           <h2 style={{ marginTop: '1rem' }}>Approvals</h2>
