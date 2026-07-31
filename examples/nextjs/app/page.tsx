@@ -452,7 +452,7 @@ export default function Page() {
       try {
         const permit2 = await signAddLiquidityPermit2({
         chainId: CHAIN_ID,
-        client: walletClient.data as never,
+        client: publicClient as never,
         owner: address,
         quote: quote as AddLiquidityQuote,
         slippage: { percentage: slippage as `${number}` },
