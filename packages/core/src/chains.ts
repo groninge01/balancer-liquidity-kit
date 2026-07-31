@@ -43,6 +43,8 @@ export const supportedChains: readonly ChainConfig[] = [
 
 export { ZERO_ADDRESS as zeroAddress }
 
+export const permit2Address: Address = PERMIT2[1] ?? ZERO_ADDRESS
+
 export function getChainConfig(chainId: number): ChainConfig | undefined {
   return supportedChains.find(c => c.chainId === chainId)
 }
