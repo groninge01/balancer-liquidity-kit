@@ -22,15 +22,15 @@ const POOL: V3WeightedPool = createV3WeightedPoolState({
     {
       address: '0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8',
       decimals: 6,
-      symbol: 'usdc-aave',
     },
     {
       address: '0xff34b3d4aee8ddcd6f9afffb6fe49bd371b8a357',
       decimals: 18,
-      symbol: 'dai-aave',
     },
   ],
 })
+
+const TOKEN_SYMBOLS = ['usdc-aave', 'dai-aave']
 
 export default function Page() {
   const { address, isConnected } = useAccount()
@@ -262,7 +262,7 @@ export default function Page() {
             return (
               <div className="input-group" key={i}>
                 <label>
-                  {token.symbol} ({token.decimals} decimals)
+                  {TOKEN_SYMBOLS[i]} ({token.decimals} decimals)
                   {hasBalance && (
                     <span
                       style={{
@@ -286,7 +286,7 @@ export default function Page() {
                     type="number"
                     value={amounts[i] ?? ''}
                   />
-                  <span>{token.symbol}</span>
+                  <span>{TOKEN_SYMBOLS[i]}</span>
                 </div>
                 {isInsufficient && (
                   <p className="error" style={{ fontSize: '0.8rem' }}>
@@ -347,7 +347,7 @@ export default function Page() {
             const isSatisfied = a.amount <= currentAllowance
             return (
               <p className="status" key={i} style={{ color: isSatisfied ? '#22c55e' : '#ef4444' }}>
-                {POOL.tokens[i].symbol}: {formatUnits(a.amount, POOL.tokens[i].decimals)} needed{' '}
+                {TOKEN_SYMBOLS[i]}: {formatUnits(a.amount, POOL.tokens[i].decimals)} needed{' '}
                 {isSatisfied
                   ? '✓ approved'
                   : `(allowance: ${formatUnits(currentAllowance, POOL.tokens[i].decimals)})`}
