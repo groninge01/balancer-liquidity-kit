@@ -5,3 +5,4 @@ export * from './errors'
 export * from './fixtures'
 export * from './pool'
 export * from './types'
+export * from "./removeLiquidity";
