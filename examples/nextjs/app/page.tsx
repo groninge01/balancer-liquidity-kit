@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { parseUnits, formatUnits } from 'viem'
+import { useState, useEffect } from 'react'
+import { parseUnits, formatUnits, erc20Abi } from 'viem'
 import { useAccount, useConnect, useDisconnect, useWalletClient, usePublicClient } from 'wagmi'
 import {
   createV3WeightedPoolState,
@@ -39,6 +39,104 @@ export default function Page() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const [txHash, setTxHash] = useState<string | undefined>()
+  const [balances, setBalances] = useState<bigint[]>([])
+  const [allowances, setAllowances] = useState<bigint[]>([])
+
+  useEffect(() => {
+    if (!isConnected || !address || !publicClient) {
+      setBalances([])
+      setAllowances([])
+      return
+    }
+    let cancelled = false
+    async function fetchBalances() {
+      const bals: bigint[] = []
+      const allow: bigint[] = []
+      for (const token of POOL.tokens) {
+        try {
+          const bal = await publicClient!.readContract({
+            address: token.address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [address!],
+          }) as bigint
+          bals.push(bal)
+        } catch { bals.push(0n) }
+      }
+      if (cancelled) return
+      setBalances(bals)
+      // Fetch allowances after we have the plan (spender = plan.call.to)
+      if (plan) {
+        for (const token of POOL.tokens) {
+          try {
+            const al = await publicClient!.readContract({
+              address: token.address as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'allowance',
+              args: [address!, plan.call.to],
+            }) as bigint
+            allow.push(al)
+          } catch { allow.push(0n) }
+        }
+        if (!cancelled) setAllowances(allow)
+      }
+    }
+    fetchBalances()
+    return () => { cancelled = true }
+  }, [isConnected, address, publicClient, plan])
+
+  function hasInsufficientBalance(): boolean {
+    return POOL.tokens.some((token, i) => {
+      const input = parseUnits(amounts[i] || '0', token.decimals)
+      return balances[i] !== undefined && input > balances[i]
+    })
+  }
+
+  function hasInsufficientAllowance(): boolean {
+    if (!plan) return false
+    return plan.approvals.some((a, i) => {
+      return allowances[i] !== undefined && a.amount > allowances[i]
+    })
+  }
+
+  async function handleApprove() {
+    if (!plan || !walletClient.data || !address) return
+    setSending(true)
+    setError(undefined)
+    try {
+      for (let i = 0; i < plan.approvals.length; i++) {
+        const approval = plan.approvals[i]
+        const currentAllowance = allowances[i] ?? 0n
+        if (approval.amount <= currentAllowance) continue
+        const hash = await walletClient.data.writeContract({
+          address: approval.token,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [approval.spender, approval.amount],
+          account: address,
+        })
+        await publicClient!.waitForTransactionReceipt({ hash })
+      }
+      // Refresh allowances
+      const allow: bigint[] = []
+      for (const token of POOL.tokens) {
+        try {
+          const al = await publicClient!.readContract({
+            address: token.address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'allowance',
+            args: [address!, plan.call.to],
+          }) as bigint
+          allow.push(al)
+        } catch { allow.push(0n) }
+      }
+      setAllowances(allow)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSending(false)
+    }
+  }
 
   async function handleQuote() {
     if (!address) return
@@ -99,6 +197,9 @@ export default function Page() {
     }
   }
 
+  const insufficientBalance = hasInsufficientBalance()
+  const insufficientAllowance = hasInsufficientAllowance()
+
   return (
     <div>
       <h1>Balancer Liquidity Kit — Add Liquidity</h1>
@@ -132,30 +233,46 @@ export default function Page() {
       {isConnected && (
         <div className="card">
           <h2>Token Amounts</h2>
-          {POOL.tokens.map((token, i) => (
-            <div key={i} className="input-group">
-              <label>{token.symbol} ({token.decimals} decimals)</label>
-              <div className="token-row">
-                <input
-                  value={amounts[i] ?? ''}
-                  onChange={(e) => {
-                    const next = [...amounts]
-                    next[i] = e.target.value
-                    setAmounts(next)
-                  }}
-                  placeholder="0.0"
-                  type="number"
-                  step="any"
-                />
-                <span>{token.symbol}</span>
+          {POOL.tokens.map((token, i) => {
+            const balance = balances[i]
+            const inputAmount = parseUnits(amounts[i] || '0', token.decimals)
+            const hasBalance = balance !== undefined
+            const isInsufficient = hasBalance && inputAmount > balance
+            return (
+              <div key={i} className="input-group">
+                <label>
+                  {token.symbol} ({token.decimals} decimals)
+                  {hasBalance && (
+                    <span style={{ marginLeft: '0.5rem', color: isInsufficient ? '#ef4444' : '#888' }}>
+                      Balance: {formatUnits(balance, token.decimals)}
+                    </span>
+                  )}
+                </label>
+                <div className="token-row">
+                  <input
+                    value={amounts[i] ?? ''}
+                    onChange={(e) => {
+                      const next = [...amounts]
+                      next[i] = e.target.value
+                      setAmounts(next)
+                    }}
+                    placeholder="0.0"
+                    type="number"
+                    step="any"
+                  />
+                  <span>{token.symbol}</span>
+                </div>
+                {isInsufficient && (
+                  <p className="error" style={{ fontSize: '0.8rem' }}>Insufficient balance</p>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
           <div className="input-group">
             <label>Slippage (%)</label>
             <input value={slippage} onChange={(e) => setSlippage(e.target.value)} type="number" step="any" />
           </div>
-          <button onClick={handleQuote} disabled={loading}>
+          <button onClick={handleQuote} disabled={loading || insufficientBalance}>
             {loading ? 'Quoting...' : 'Get Quote & Build Plan'}
           </button>
         </div>
@@ -185,14 +302,24 @@ export default function Page() {
           <p className="status">Value: {plan.call.value.toString()}</p>
           <p className="status">Min BPT out: {formatUnits(plan.call.minBptOut.amount, plan.call.minBptOut.token.decimals)}</p>
           <p className="status">Calldata: {toHexCallData(plan.call).slice(0, 66)}...</p>
-          <h2 style={{ marginTop: '1rem' }}>Approvals Required</h2>
-          {plan.approvals.map((a, i) => (
-            <p key={i} className="status">
-              Token {a.token} → Spender {a.spender}: {a.amount.toString()}
-            </p>
-          ))}
-          <div style={{ marginTop: '1rem' }}>
-            <button onClick={handleSend} disabled={sending || !walletClient.data}>
+          <h2 style={{ marginTop: '1rem' }}>Approvals</h2>
+          {plan.approvals.map((a, i) => {
+            const currentAllowance = allowances[i] ?? 0n
+            const isSatisfied = a.amount <= currentAllowance
+            return (
+              <p key={i} className="status" style={{ color: isSatisfied ? '#22c55e' : '#ef4444' }}>
+                {POOL.tokens[i].symbol}: {formatUnits(a.amount, POOL.tokens[i].decimals)} needed{' '}
+                {isSatisfied ? '✓ approved' : `(allowance: ${formatUnits(currentAllowance, POOL.tokens[i].decimals)})`}
+              </p>
+            )
+          })}
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+            {insufficientAllowance && (
+              <button onClick={handleApprove} disabled={sending}>
+                {sending ? 'Approving...' : 'Approve Tokens'}
+              </button>
+            )}
+            <button onClick={handleSend} disabled={sending || !walletClient.data || insufficientAllowance || insufficientBalance}>
               {sending ? 'Sending...' : 'Send Transaction'}
             </button>
           </div>
