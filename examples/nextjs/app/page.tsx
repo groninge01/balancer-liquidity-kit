@@ -446,13 +446,15 @@ export default function Page() {
     }
 
     async function handleSignPermit2() {
-      if (!quote || !walletClient.data || !address) return
+      if (!quote || !walletClient.data || !address || !publicClient) return
       setSigning(true)
       setError(undefined)
       try {
+        // SDK needs both readContract (public) and signTypedData (wallet)
+        const combinedClient = { ...publicClient, ...walletClient.data } as never
         const permit2 = await signAddLiquidityPermit2({
         chainId: CHAIN_ID,
-        client: publicClient as never,
+        client: combinedClient,
         owner: address,
         quote: quote as AddLiquidityQuote,
         slippage: { percentage: slippage as `${number}` },
