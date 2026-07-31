@@ -1,0 +1,25 @@
+{
+  "name": "@balancer/liquidity-kit-core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic Balancer liquidity actions and transaction planning",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --outDir dist --declaration --declarationMap --sourceMap --noEmit false",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@balancer/sdk": "6.1.1",
+    "viem": "^2.55.10"
+  }
+}
