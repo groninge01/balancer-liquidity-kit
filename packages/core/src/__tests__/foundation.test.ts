@@ -53,13 +53,17 @@ describe('chains', () => {
     expect(getChainConfig(137)?.supportsPermit2).toBe(false)
   })
 
-  it('V3-only chains have zero-address vault', () => {
-    expect(getChainConfig(143)?.vault).toBe('0x0000000000000000000000000000000000000000')
-    expect(getChainConfig(999)?.vault).toBe('0x0000000000000000000000000000000000000000')
+  it('V3-only chains have zero-address V2 vault', () => {
+    expect(getChainConfig(143)?.vaultV2).toBe('0x0000000000000000000000000000000000000000')
+    expect(getChainConfig(999)?.vaultV2).toBe('0x0000000000000000000000000000000000000000')
+  })
+
+  it('V2-only Polygon has zero-address V3 vault', () => {
+    expect(getChainConfig(137)?.vaultV3).toBe('0x0000000000000000000000000000000000000000')
   })
 
   it('Plasma supports both V2 and V3', () => {
-    expect(getChainConfig(9745)?.vault).toBe('0xBA12222222228d8Ba445958a75a0704d566BF2C8')
+    expect(getChainConfig(9745)?.vaultV2).toBe('0xBA12222222228d8Ba445958a75a0704d566BF2C8')
     expect(getChainConfig(9745)?.supportsV2).toBe(true)
     expect(getChainConfig(9745)?.supportsV3).toBe(true)
   })
