@@ -24,6 +24,24 @@ describe('chains', () => {
   it('rejects unsupported chains', () => {
     expect(isSupportedChain(999)).toBe(false)
   })
+
+  it('supports all Balancer V2 chains', () => {
+    const expectedChains = [1, 10, 56, 100, 137, 146, 250, 252, 324, 1101, 8453, 34443, 42161, 43114, 11155111]
+    for (const chainId of expectedChains) {
+      expect(isSupportedChain(chainId)).toBe(true)
+    }
+  })
+
+  it('reports Permit2 support correctly', () => {
+    expect(getChainConfig(1)?.supportsPermit2).toBe(true)
+    expect(getChainConfig(42161)?.supportsPermit2).toBe(true)
+    expect(getChainConfig(56)?.supportsPermit2).toBe(false)
+    expect(getChainConfig(250)?.supportsPermit2).toBe(false)
+  })
+
+  it('uses Fantom-specific vault address', () => {
+    expect(getChainConfig(250)?.vault).toBe('0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce')
+  })
 })
 
 describe('errors', () => {
