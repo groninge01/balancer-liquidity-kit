@@ -30,6 +30,9 @@ import {
   buildV3WeightedSingleTokenRemoval,
   quoteV3BoostedProportionalRemoval,
   buildV3BoostedProportionalRemoval,
+  signAddLiquidityPermit2,
+  buildAddLiquidityWithPermit2,
+  permit2Address,
   toHexCallData,
   type AddLiquidityQuote,
   type AddLiquidityPlan,
@@ -39,6 +42,7 @@ import {
   type RemoveLiquidityPlan,
   type V3BoostedRemoveLiquidityQuote,
   type V3BoostedRemoveLiquidityPlan,
+  type Permit2Plan,
 } from '@balancer/liquidity-kit-core'
 
 const SEPOLIA_RPC = 'https://sepolia.drpc.org'
@@ -123,6 +127,9 @@ export default function Page() {
   const [txHash, setTxHash] = useState<string | undefined>()
   const [balances, setBalances] = useState<bigint[]>([])
   const [allowances, setAllowances] = useState<bigint[]>([])
+  const [permit2Allowances, setPermit2Allowances] = useState<bigint[]>([])
+  const [permit2Plan, setPermit2Plan] = useState<Permit2Plan | undefined>()
+  const [signing, setSigning] = useState(false)
   const [bptBalance, setBptBalance] = useState<bigint | undefined>()
 
   const pool = POOLS[poolIdx]
@@ -142,14 +149,19 @@ export default function Page() {
     }
   }
 
+  const isV3 = pool.type === 'V3_WEIGHTED' || pool.type === 'V3_BOOSTED'
+  const p2Address = permit2Address as `0x${string}`
+
   // Reset state when pool or action changes
   useEffect(() => {
     setAmounts(pool.tokens.map(() => ''))
     setBptAmount('')
     setQuote(undefined)
-    setPlan(undefined)
-    setBalances([])
-    setAllowances([])
+  setPlan(undefined)
+  setPermit2Plan(undefined)
+  setBalances([])
+  setAllowances([])
+  setPermit2Allowances([])
   }, [poolIdx, action])
 
   useEffect(() => {
@@ -182,6 +194,24 @@ export default function Page() {
         if (!cancelled) setBptBalance(bptBal)
       } catch {
         if (!cancelled) setBptBalance(0n)
+      }
+        // Fetch Permit2 allowances for V3 pools
+        if (isV3) {
+        const p2Allow: bigint[] = []
+        for (const token of pool.tokens) {
+          try {
+            const al = (await publicClient!.readContract({
+              address: token.address as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'allowance',
+              args: [address!, p2Address],
+            })) as bigint
+            p2Allow.push(al)
+          } catch {
+            p2Allow.push(0n)
+          }
+        }
+        if (!cancelled) setPermit2Allowances(p2Allow)
       }
     }
     fetchBalances()
@@ -375,17 +405,89 @@ export default function Page() {
     }
   }
 
-  async function handleSend() {
-    if (!plan || !walletClient.data || !publicClient) return
+  async function handleApprovePermit2() {
+    if (!walletClient.data || !address) return
     setSending(true)
     setError(undefined)
-    setTxHash(undefined)
     try {
-      const callData = 'callData' in plan.call ? plan.call.callData : (plan.call as { callData: string }).callData
-      const hash = await walletClient.data.sendTransaction({
-        to: plan.call.to as `0x${string}`,
+        for (let i = 0; i < pool.tokens.length; i++) {
+          const currentAllowance = permit2Allowances[i] ?? 0n
+          const neededAmount = parseUnits(amounts[i] || '0', pool.tokens[i].decimals)
+        if (neededAmount <= currentAllowance) continue
+        const hash = await walletClient.data.writeContract({
+            address: pool.tokens[i].address as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [p2Address, 2n ** 256n - 1n],
+          account: address,
+        })
+        await publicClient!.waitForTransactionReceipt({ hash })
+        }
+        const p2Allow: bigint[] = []
+        for (const token of pool.tokens) {
+        try {
+          const al = (await publicClient!.readContract({
+            address: token.address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'allowance',
+            args: [address!, p2Address],
+          })) as bigint
+          p2Allow.push(al)
+        } catch {
+          p2Allow.push(0n)
+        }
+        }
+        setPermit2Allowances(p2Allow)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setSending(false)
+      }
+    }
+
+    async function handleSignPermit2() {
+      if (!quote || !walletClient.data || !address) return
+      setSigning(true)
+      setError(undefined)
+      try {
+        const permit2 = await signAddLiquidityPermit2({
+        chainId: CHAIN_ID,
+        client: walletClient.data as never,
+        owner: address,
+        quote: quote as AddLiquidityQuote,
+        slippage: { percentage: slippage as `${number}` },
+        sender: address,
+        recipient: address,
+        wethIsEth: false,
+        })
+        const p2Plan = buildAddLiquidityWithPermit2(
+        quote as AddLiquidityQuote,
+        permit2,
+        { percentage: slippage as `${number}` },
+        address,
+        address,
+        false
+        )
+        setPermit2Plan(p2Plan)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setSigning(false)
+      }
+    }
+
+    async function handleSend() {
+      if (!plan || !walletClient.data || !publicClient) return
+      setSending(true)
+      setError(undefined)
+      setTxHash(undefined)
+      try {
+        const call = isV3 && permit2Plan ? permit2Plan.call : plan.call
+        const callData = 'callData' in call ? call.callData : (call as { callData: string }).callData
+        const hash = await walletClient.data.sendTransaction({
+        to: call.to as `0x${string}`,
         data: callData as `0x${string}`,
-        value: plan.call.value,
+        value: call.value,
         account: address!,
       })
       setTxHash(hash)
@@ -403,6 +505,14 @@ export default function Page() {
   const insufficientBalance = hasInsufficientBalance()
   const insufficientAllowance = hasInsufficientAllowance()
   const supportsSingleToken = pool.type !== 'V3_BOOSTED'
+
+  const needsPermit2Approval = isV3 && action === 'add' && pool.tokens.some((token, i) => {
+    const needed = parseUnits(amounts[i] || '0', token.decimals)
+    return (permit2Allowances[i] ?? 0n) < needed
+  })
+  const hasPermit2Signature = !!permit2Plan
+  const canSendV3 = isV3 && action === 'add' ? !needsPermit2Approval && hasPermit2Signature : !insufficientAllowance
+  const canSend = canSendV3 && !insufficientBalance
 
   return (
     <div>
@@ -675,17 +785,30 @@ export default function Page() {
               })}
             </>
           )}
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-            {insufficientAllowance && (
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {isV3 && action === 'add' && needsPermit2Approval && (
+              <button disabled={sending} onClick={handleApprovePermit2}>
+                {sending ? 'Approving...' : '1. Approve to Permit2'}
+              </button>
+            )}
+            {isV3 && action === 'add' && !needsPermit2Approval && !hasPermit2Signature && (
+              <button disabled={signing} onClick={handleSignPermit2}>
+                  {signing ? 'Signing...' : '2. Sign Permit2'}
+                </button>
+              )}
+            {isV3 && action === 'add' && hasPermit2Signature && (
+                <p className="status" style={{ color: '#22c55e' }}>✓ Permit2 signed</p>
+            )}
+            {!isV3 && action === 'add' && insufficientAllowance && (
               <button disabled={sending} onClick={handleApprove}>
                 {sending ? 'Approving...' : 'Approve Tokens'}
               </button>
             )}
             <button
-              disabled={sending || !walletClient.data || insufficientAllowance || insufficientBalance}
+              disabled={sending || signing || !walletClient.data || !canSend}
               onClick={handleSend}
             >
-              {sending ? 'Sending...' : 'Send Transaction'}
+              {sending ? 'Sending...' : isV3 && action === 'add' ? '3. Send Transaction' : 'Send Transaction'}
             </button>
           </div>
         </div>
