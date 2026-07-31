@@ -48,9 +48,9 @@ describe('chains', () => {
   })
 
   it('reports Permit2 support correctly', () => {
-    expect(getChainConfig(1)?.supportsPermit2).toBe(true)
-    expect(getChainConfig(42161)?.supportsPermit2).toBe(true)
-    expect(getChainConfig(137)?.supportsPermit2).toBe(false)
+    expect(getChainConfig(1)?.permit2).toBe('0x000000000022D473030F116dDEE9F6B43aC78BA3')
+    expect(getChainConfig(42161)?.permit2).toBe('0x000000000022D473030F116dDEE9F6B43aC78BA3')
+    expect(getChainConfig(137)?.permit2).toBe('0x0000000000000000000000000000000000000000')
   })
 
   it('V3-only chains have zero-address V2 vault', () => {

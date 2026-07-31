@@ -28,7 +28,7 @@ export function getPoolCapabilities(pool: PoolData): PoolCapabilities {
     canRemoveLiquidity: supported,
     canStake: false,
     canUnstake: false,
-    supportsPermit2: supported && Boolean(chain?.supportsPermit2),
+    supportsPermit2: supported && chain?.permit2 !== '0x0000000000000000000000000000000000000000',
     supportsNativeAsset: supported && pool.tokens.some((t) => t.symbol === 'WETH'),
   }
 }
