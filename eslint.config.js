@@ -59,6 +59,7 @@ const config = [
       '@typescript-eslint/no-explicit-any': 'off',
       'react/jsx-sort-props': ['error', { ignoreCase: true }],
       'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/set-state-in-effect': 'off',
       curly: ['error', 'multi-line'],
       'react/react-in-jsx-scope': 'off',
       'no-console': 'off',
