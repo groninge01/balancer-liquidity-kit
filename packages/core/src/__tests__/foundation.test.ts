@@ -63,7 +63,7 @@ describe('chains', () => {
   })
 
   it('Plasma supports both V2 and V3', () => {
-    expect(getChainConfig(9745)?.vaultV2).toBe('0xBA12222222228d8Ba445958a75a0704d566BF2C8')
+    expect(getChainConfig(9745)?.vaultV2).toBe('0x0000000000000000000000000000000000000000')
     expect(getChainConfig(9745)?.supportsV2).toBe(true)
     expect(getChainConfig(9745)?.supportsV3).toBe(true)
   })

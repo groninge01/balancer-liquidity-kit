@@ -10,13 +10,11 @@ export type ChainConfig = {
   supportsV3: boolean
 }
 
-const STANDARD_V2_VAULT: Address = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
-
 function buildChainConfig(chainId: number, name: string, supportsV2: boolean, supportsV3: boolean): ChainConfig {
   return {
     chainId,
     name,
-    vaultV2: supportsV2 ? (VAULT_V2[chainId] ?? STANDARD_V2_VAULT) : ZERO_ADDRESS,
+    vaultV2: supportsV2 ? (VAULT_V2[chainId] ?? ZERO_ADDRESS) : ZERO_ADDRESS,
     vaultV3: supportsV3 ? AddressProvider.Vault(chainId) : ZERO_ADDRESS,
     permit2: PERMIT2[chainId] ?? ZERO_ADDRESS,
     supportsV2,
