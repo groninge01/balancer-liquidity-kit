@@ -32,6 +32,8 @@ import {
   buildV3BoostedProportionalRemoval,
   signAddLiquidityPermit2,
   buildAddLiquidityWithPermit2,
+  signRemoveLiquidityPermit,
+  buildRemoveLiquidityWithPermit,
   permit2Address,
   toHexCallData,
   type AddLiquidityQuote,
@@ -43,6 +45,7 @@ import {
   type V3BoostedRemoveLiquidityQuote,
   type V3BoostedRemoveLiquidityPlan,
   type Permit2Plan,
+    type RemoveLiquidityPermit2Plan,
 } from '@balancer/liquidity-kit-core'
 
 const SEPOLIA_RPC = 'https://sepolia.drpc.org'
@@ -129,6 +132,7 @@ export default function Page() {
   const [allowances, setAllowances] = useState<bigint[]>([])
   const [permit2Allowances, setPermit2Allowances] = useState<bigint[]>([])
   const [permit2Plan, setPermit2Plan] = useState<Permit2Plan | undefined>()
+  const [removePermit2Plan, setRemovePermit2Plan] = useState<RemoveLiquidityPermit2Plan | undefined>()
   const [signing, setSigning] = useState(false)
   const [bptBalance, setBptBalance] = useState<bigint | undefined>()
 
@@ -478,13 +482,49 @@ export default function Page() {
       }
     }
 
-    async function handleSend() {
-      if (!plan || !walletClient.data || !publicClient) return
-      setSending(true)
+    async function handleSignRemovePermit2() {
+      if (!quote || !walletClient.data || !address || !publicClient) return
+      setSigning(true)
       setError(undefined)
-      setTxHash(undefined)
       try {
-        const call = isV3 && permit2Plan ? permit2Plan.call : plan.call
+          const combinedClient = { ...publicClient, ...walletClient.data } as never
+        const permit = await signRemoveLiquidityPermit({
+          chainId: CHAIN_ID,
+          client: combinedClient,
+          owner: address,
+          quote: quote as RemoveLiquidityQuote,
+          slippage: { percentage: slippage as `${number}` },
+          sender: address,
+          recipient: address,
+          wethIsEth: false,
+        })
+        const rp2Plan = buildRemoveLiquidityWithPermit(
+          quote as RemoveLiquidityQuote,
+          permit,
+          { percentage: slippage as `${number}` },
+          address,
+          address,
+          false
+        )
+        setRemovePermit2Plan(rp2Plan)
+        } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+        } finally {
+        setSigning(false)
+        }
+      }
+
+      async function handleSend() {
+        if (!plan || !walletClient.data || !publicClient) return
+        setSending(true)
+        setError(undefined)
+        setTxHash(undefined)
+        try {
+        const call = isV3 && action === 'add' && permit2Plan
+          ? permit2Plan.call
+          : isV3 && action === 'remove' && removePermit2Plan
+          ? removePermit2Plan.call
+          : plan.call
         const callData = 'callData' in call ? call.callData : (call as { callData: string }).callData
         const hash = await walletClient.data.sendTransaction({
         to: call.to as `0x${string}`,
@@ -512,8 +552,12 @@ export default function Page() {
     const needed = parseUnits(amounts[i] || '0', token.decimals)
     return (permit2Allowances[i] ?? 0n) < needed
   })
-  const hasPermit2Signature = !!permit2Plan
-  const canSendV3 = isV3 && action === 'add' ? !needsPermit2Approval && hasPermit2Signature : !insufficientAllowance
+  const hasPermit2Signature = action === 'add' ? !!permit2Plan : !!removePermit2Plan
+  const canSendV3 = isV3
+    ? action === 'add'
+      ? !needsPermit2Approval && hasPermit2Signature
+      : hasPermit2Signature
+    : !insufficientAllowance
   const canSend = canSendV3 && !insufficientBalance
 
   return (
@@ -798,19 +842,30 @@ export default function Page() {
                   {signing ? 'Signing...' : '2. Sign Permit2'}
                 </button>
               )}
-            {isV3 && action === 'add' && hasPermit2Signature && (
-                <p className="status" style={{ color: '#22c55e' }}>✓ Permit2 signed</p>
+            {isV3 && action === 'remove' && !hasPermit2Signature && (
+                <button disabled={signing} onClick={handleSignRemovePermit2}>
+                  {signing ? 'Signing...' : '1. Sign Permit2'}
+                </button>
+              )}
+              {isV3 && hasPermit2Signature && (
+              <p className="status" style={{ color: '#22c55e' }}>✓ Permit2 signed</p>
             )}
             {!isV3 && action === 'add' && insufficientAllowance && (
               <button disabled={sending} onClick={handleApprove}>
-                {sending ? 'Approving...' : 'Approve Tokens'}
-              </button>
-            )}
+                  {sending ? 'Approving...' : 'Approve Tokens'}
+                </button>
+              )}
             <button
-              disabled={sending || signing || !walletClient.data || !canSend}
+                disabled={sending || signing || !walletClient.data || !canSend}
               onClick={handleSend}
             >
-              {sending ? 'Sending...' : isV3 && action === 'add' ? '3. Send Transaction' : 'Send Transaction'}
+              {sending
+                ? 'Sending...'
+                : isV3 && action === 'add'
+                  ? '3. Send Transaction'
+                  : isV3 && action === 'remove'
+                    ? '2. Send Transaction'
+                    : 'Send Transaction'}
             </button>
           </div>
         </div>
