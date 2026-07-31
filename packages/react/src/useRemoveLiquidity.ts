@@ -16,19 +16,27 @@ export type RemoveLiquidityHookResult = {
 }
 
 export function useRemoveLiquidity(params: RemoveLiquidityInput): RemoveLiquidityHookResult {
-  const [state, setState] = useState<{ quote?: RemoveLiquidityQuote; plan?: RemoveLiquidityPlan; isLoading: boolean; error?: Error }>({ isLoading: false })
+  const [state, setState] = useState<{
+    quote?: RemoveLiquidityQuote
+    plan?: RemoveLiquidityPlan
+    isLoading: boolean
+    error?: Error
+  }>({ isLoading: false })
 
   const refresh = useCallback(() => {
     setState({ isLoading: true })
     quoteV2WeightedProportionalRemoval(params)
-      .then((quote) => {
+      .then(quote => {
         return buildV2WeightedProportionalRemoval(params, quote)
       })
-      .then((plan) => {
+      .then(plan => {
         setState({ quote: plan.quote, plan, isLoading: false })
       })
-      .catch((error) => {
-        setState({ isLoading: false, error: error instanceof Error ? error : new Error(String(error)) })
+      .catch(error => {
+        setState({
+          isLoading: false,
+          error: error instanceof Error ? error : new Error(String(error)),
+        })
       })
   }, [params])
 

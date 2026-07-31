@@ -1,15 +1,30 @@
 {
   "name": "@balancer/liquidity-kit",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "pnpm -r build",
     "test": "vitest run",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "format": "prettier '**/*.*(md|json|yaml|ts|js|tsx|mjs)' --check --log-level=warn",
+    "format:fix": "prettier '**/*.*(md|json|yaml|ts|js|tsx|mjs)' --write --log-level=warn"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^7.1.0",
+    "globals": "^17.5.0",
+    "prettier": "^3.8.0",
     "typescript": "^5.9.0",
+    "typescript-eslint": "^8.60.0",
     "vitest": "^3.2.0"
   },
   "packageManager": "pnpm@11.17.0",
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

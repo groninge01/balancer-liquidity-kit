@@ -16,19 +16,27 @@ export type AddLiquidityHookResult = {
 }
 
 export function useAddLiquidity(params: AddLiquidityInput): AddLiquidityHookResult {
-  const [state, setState] = useState<{ quote?: AddLiquidityQuote; plan?: AddLiquidityPlan; isLoading: boolean; error?: Error }>({ isLoading: false })
+  const [state, setState] = useState<{
+    quote?: AddLiquidityQuote
+    plan?: AddLiquidityPlan
+    isLoading: boolean
+    error?: Error
+  }>({ isLoading: false })
 
   const refresh = useCallback(() => {
     setState({ isLoading: true })
     quoteV2WeightedAddLiquidity(params)
-      .then((quote) => {
+      .then(quote => {
         return buildV2WeightedAddLiquidity(params, quote)
       })
-      .then((plan) => {
+      .then(plan => {
         setState({ quote: plan.quote, plan, isLoading: false })
       })
-      .catch((error) => {
-        setState({ isLoading: false, error: error instanceof Error ? error : new Error(String(error)) })
+      .catch(error => {
+        setState({
+          isLoading: false,
+          error: error instanceof Error ? error : new Error(String(error)),
+        })
       })
   }, [params])
 

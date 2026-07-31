@@ -23,7 +23,7 @@ describe('V3 weighted proportional remove liquidity', () => {
         recipient: poolState.address,
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 1n },
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 
@@ -37,7 +37,7 @@ describe('V3 weighted proportional remove liquidity', () => {
         recipient: poolState.address,
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 0n },
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('bptIn')
   })
 

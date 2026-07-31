@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { AddLiquidityKind, Slippage } from '@balancer/sdk'
-import { assertV2WeightedPool, createWeightedPoolState, poolDataToPoolState, quoteV2WeightedAddLiquidity } from '../addLiquidity'
+import {
+  assertV2WeightedPool,
+  createWeightedPoolState,
+  poolDataToPoolState,
+  quoteV2WeightedAddLiquidity,
+} from '../addLiquidity'
 import { getPoolCapabilities } from '../pool'
 import { getChainConfig, isSupportedChain } from '../chains'
 import { createLiquidityKitError, normalizeError } from '../errors'
@@ -130,7 +135,7 @@ describe('addLiquidity', () => {
         recipient: poolState.address,
         amountsIn: [],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('amountsIn')
   })
 
@@ -144,7 +149,7 @@ describe('addLiquidity', () => {
         recipient: poolState.address,
         amountsIn: [{ address: poolState.tokens[0].address, decimals: 18, rawAmount: 1n }],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 

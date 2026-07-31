@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { AddLiquidityKind } from '@balancer/sdk'
-import { assertV2StablePool, createStablePoolState, quoteV2StableAddLiquidity } from '../addLiquidity'
+import {
+  assertV2StablePool,
+  createStablePoolState,
+  quoteV2StableAddLiquidity,
+} from '../addLiquidity'
 
 const poolState = createStablePoolState({
   id: '0x4444444444444444444444444444444444444444444444444444444444444444',
@@ -28,7 +32,7 @@ describe('V2 stable add liquidity', () => {
         recipient: poolState.address,
         amountsIn: [],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('amountsIn')
   })
 
@@ -42,7 +46,7 @@ describe('V2 stable add liquidity', () => {
         recipient: poolState.address,
         amountsIn: [{ address: poolState.tokens[0].address, decimals: 6, rawAmount: 1n }],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 

@@ -42,13 +42,20 @@ export type AddLiquidityPlan = {
   approvals: readonly { token: Address; spender: Address; amount: bigint }[]
 }
 
-function toInputAmount(input: { address: Address; decimals: number; rawAmount: bigint }): InputAmount {
+function toInputAmount(input: {
+  address: Address
+  decimals: number
+  rawAmount: bigint
+}): InputAmount {
   return { address: input.address, decimals: input.decimals, rawAmount: input.rawAmount }
 }
 
 export function assertV2WeightedPool(pool: PoolState): asserts pool is V2WeightedPool {
-  if (pool.protocolVersion !== 2 || pool.type !== 'Weighted')
-    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 weighted pool', { retryable: false })
+  if (pool.protocolVersion !== 2 || pool.type !== 'Weighted') {
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 weighted pool', {
+      retryable: false,
+    })
+  }
 }
 
 export function createWeightedPoolState(input: {
@@ -70,21 +77,37 @@ export function createWeightedPoolState(input: {
   }
 }
 
-export function createSdkToken(input: { address: Address; decimals: number; symbol?: string }): Token {
+export function createSdkToken(input: {
+  address: Address
+  decimals: number
+  symbol?: string
+}): Token {
   return new Token(1, input.address, input.decimals, input.symbol)
 }
 
-export function createSdkAmount(input: { address: Address; decimals: number; amount: bigint }): TokenAmount {
+export function createSdkAmount(input: {
+  address: Address
+  decimals: number
+  amount: bigint
+}): TokenAmount {
   return TokenAmount.fromRawAmount(createSdkToken(input), input.amount)
 }
 
 export async function quoteV2WeightedAddLiquidity(
   input: AddLiquidityInput,
-  poolState: PoolState = input.pool,
+  poolState: PoolState = input.pool
 ): Promise<AddLiquidityQuote> {
   const chain = getChainConfig(input.chainId)
-  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
-  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (!input.amountsIn.length) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', {
+      retryable: false,
+    })
+  }
   assertV2WeightedPool(poolState)
   const result = await new AddLiquidity().query(
     {
@@ -94,14 +117,14 @@ export async function quoteV2WeightedAddLiquidity(
       amountsIn: input.amountsIn.map(toInputAmount),
       kind: AddLiquidityKind.Unbalanced,
     },
-    poolState,
+    poolState
   )
   return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
 }
 
 export async function buildV2WeightedAddLiquidity(
   input: AddLiquidityInput,
-  quote: AddLiquidityQuote,
+  quote: AddLiquidityQuote
 ): Promise<AddLiquidityPlan> {
   const call = new AddLiquidity().buildCall({
     ...quote.sdk,
@@ -113,7 +136,7 @@ export async function buildV2WeightedAddLiquidity(
   return {
     quote,
     call,
-    approvals: input.amountsIn.map((amount) => ({
+    approvals: input.amountsIn.map(amount => ({
       token: amount.address,
       spender: call.to,
       amount: amount.rawAmount,
@@ -126,22 +149,33 @@ export function toHexCallData(call: AddLiquidityBuildCallOutput): Hex {
 }
 
 export function poolDataToPoolState(pool: PoolData): V2WeightedPool {
-  if (pool.protocolVersion !== 2 || pool.type !== 'Weighted')
-    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 weighted pool', { retryable: false })
+  if (pool.protocolVersion !== 2 || pool.type !== 'Weighted') {
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 weighted pool', {
+      retryable: false,
+    })
+  }
   return {
     id: pool.id,
     address: pool.address,
     type: pool.type,
     protocolVersion: 2,
-    tokens: pool.tokens.map((t) => ({ address: t.address, decimals: t.decimals, symbol: t.symbol, index: t.index })),
+    tokens: pool.tokens.map(t => ({
+      address: t.address,
+      decimals: t.decimals,
+      symbol: t.symbol,
+      index: t.index,
+    })),
   }
 }
 
 export type V2StablePool = PoolState & { protocolVersion: 2; type: 'Stable' }
 
 export function assertV2StablePool(pool: PoolState): asserts pool is V2StablePool {
-  if (pool.protocolVersion !== 2 || pool.type !== 'Stable')
-    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 stable pool', { retryable: false })
+  if (pool.protocolVersion !== 2 || pool.type !== 'Stable') {
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V2 stable pool', {
+      retryable: false,
+    })
+  }
 }
 
 export function createStablePoolState(input: {
@@ -176,11 +210,19 @@ export type V2StableAddLiquidityInput = {
 
 export async function quoteV2StableAddLiquidity(
   input: V2StableAddLiquidityInput,
-  poolState: PoolState = input.pool,
+  poolState: PoolState = input.pool
 ): Promise<AddLiquidityQuote> {
   const chain = getChainConfig(input.chainId)
-  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
-  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (!input.amountsIn.length) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', {
+      retryable: false,
+    })
+  }
   assertV2StablePool(poolState)
   const result = await new AddLiquidity().query(
     {
@@ -190,14 +232,14 @@ export async function quoteV2StableAddLiquidity(
       amountsIn: input.amountsIn.map(toInputAmount),
       kind: AddLiquidityKind.Unbalanced,
     },
-    poolState,
+    poolState
   )
   return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
 }
 
 export async function buildV2StableAddLiquidity(
   input: V2StableAddLiquidityInput,
-  quote: AddLiquidityQuote,
+  quote: AddLiquidityQuote
 ): Promise<AddLiquidityPlan> {
   const call = new AddLiquidity().buildCall({
     ...quote.sdk,
@@ -209,7 +251,7 @@ export async function buildV2StableAddLiquidity(
   return {
     quote,
     call,
-    approvals: input.amountsIn.map((amount) => ({
+    approvals: input.amountsIn.map(amount => ({
       token: amount.address,
       spender: call.to,
       amount: amount.rawAmount,
@@ -220,8 +262,11 @@ export async function buildV2StableAddLiquidity(
 export type V3WeightedPool = PoolState & { protocolVersion: 3; type: 'Weighted' }
 
 export function assertV3WeightedPool(pool: PoolState): asserts pool is V3WeightedPool {
-  if (pool.protocolVersion !== 3 || pool.type !== 'Weighted')
-    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 weighted pool', { retryable: false })
+  if (pool.protocolVersion !== 3 || pool.type !== 'Weighted') {
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 weighted pool', {
+      retryable: false,
+    })
+  }
 }
 
 export function createV3WeightedPoolState(input: {
@@ -256,11 +301,19 @@ export type V3WeightedAddLiquidityInput = {
 
 export async function quoteV3WeightedAddLiquidity(
   input: V3WeightedAddLiquidityInput,
-  poolState: PoolState = input.pool,
+  poolState: PoolState = input.pool
 ): Promise<AddLiquidityQuote> {
   const chain = getChainConfig(input.chainId)
-  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
-  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (!input.amountsIn.length) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', {
+      retryable: false,
+    })
+  }
   assertV3WeightedPool(poolState)
   const result = await new AddLiquidity().query(
     {
@@ -270,14 +323,14 @@ export async function quoteV3WeightedAddLiquidity(
       amountsIn: input.amountsIn.map(toInputAmount),
       kind: AddLiquidityKind.Unbalanced,
     },
-    poolState,
+    poolState
   )
   return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
 }
 
 export async function buildV3WeightedAddLiquidity(
   input: V3WeightedAddLiquidityInput,
-  quote: AddLiquidityQuote,
+  quote: AddLiquidityQuote
 ): Promise<AddLiquidityPlan> {
   const call = new AddLiquidity().buildCall({
     ...quote.sdk,
@@ -288,7 +341,7 @@ export async function buildV3WeightedAddLiquidity(
   return {
     quote,
     call,
-    approvals: input.amountsIn.map((amount) => ({
+    approvals: input.amountsIn.map(amount => ({
       token: amount.address,
       spender: call.to,
       amount: amount.rawAmount,
@@ -299,14 +352,22 @@ export async function buildV3WeightedAddLiquidity(
 export type V3BoostedPool = PoolStateWithUnderlyings & { protocolVersion: 3; type: 'Boosted' }
 
 export function assertV3BoostedPool(pool: PoolStateWithUnderlyings): asserts pool is V3BoostedPool {
-  if (pool.protocolVersion !== 3 || pool.type !== 'Boosted')
-    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 boosted pool', { retryable: false })
+  if (pool.protocolVersion !== 3 || pool.type !== 'Boosted') {
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 boosted pool', {
+      retryable: false,
+    })
+  }
 }
 
 export function createV3BoostedPoolState(input: {
   id: Hex
   address: Address
-  tokens: readonly { address: Address; decimals: number; symbol?: string; underlyingToken?: { address: Address; decimals: number; symbol?: string } | null }[]
+  tokens: readonly {
+    address: Address
+    decimals: number
+    symbol?: string
+    underlyingToken?: { address: Address; decimals: number; symbol?: string } | null
+  }[]
 }): V3BoostedPool {
   return {
     id: input.id,
@@ -319,7 +380,12 @@ export function createV3BoostedPoolState(input: {
       symbol: token.symbol,
       index,
       underlyingToken: token.underlyingToken
-        ? { address: token.underlyingToken.address, decimals: token.underlyingToken.decimals, symbol: token.underlyingToken.symbol, index: 0 }
+        ? {
+            address: token.underlyingToken.address,
+            decimals: token.underlyingToken.decimals,
+            symbol: token.underlyingToken.symbol,
+            index: 0,
+          }
         : null,
     })),
   }
@@ -350,11 +416,19 @@ export type V3BoostedAddLiquidityPlan = {
 
 export async function quoteV3BoostedAddLiquidity(
   input: V3BoostedAddLiquidityInput,
-  poolState: PoolStateWithUnderlyings = input.pool,
+  poolState: PoolStateWithUnderlyings = input.pool
 ): Promise<V3BoostedAddLiquidityQuote> {
   const chain = getChainConfig(input.chainId)
-  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
-  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (!input.amountsIn.length) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', {
+      retryable: false,
+    })
+  }
   assertV3BoostedPool(poolState)
   const result = await new AddLiquidityBoostedV3().query(
     {
@@ -364,14 +438,14 @@ export async function quoteV3BoostedAddLiquidity(
       amountsIn: input.amountsIn.map(toInputAmount),
       kind: AddLiquidityKind.Unbalanced,
     },
-    poolState,
+    poolState
   )
   return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
 }
 
 export async function buildV3BoostedAddLiquidity(
   input: V3BoostedAddLiquidityInput,
-  quote: V3BoostedAddLiquidityQuote,
+  quote: V3BoostedAddLiquidityQuote
 ): Promise<V3BoostedAddLiquidityPlan> {
   const call = new AddLiquidityBoostedV3().buildCall({
     ...quote.sdk,
@@ -381,7 +455,7 @@ export async function buildV3BoostedAddLiquidity(
   return {
     quote,
     call,
-    approvals: input.amountsIn.map((amount) => ({
+    approvals: input.amountsIn.map(amount => ({
       token: amount.address,
       spender: call.to,
       amount: amount.rawAmount,

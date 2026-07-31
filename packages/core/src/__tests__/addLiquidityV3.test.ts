@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { AddLiquidityKind } from '@balancer/sdk'
-import { assertV3WeightedPool, createV3WeightedPoolState, quoteV3WeightedAddLiquidity } from '../addLiquidity'
+import {
+  assertV3WeightedPool,
+  createV3WeightedPoolState,
+  quoteV3WeightedAddLiquidity,
+} from '../addLiquidity'
 
 const poolState = createV3WeightedPoolState({
   id: '0x7777777777777777777777777777777777777777777777777777777777777777',
@@ -28,7 +32,7 @@ describe('V3 weighted add liquidity', () => {
         recipient: poolState.address,
         amountsIn: [],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('amountsIn')
   })
 
@@ -42,7 +46,7 @@ describe('V3 weighted add liquidity', () => {
         recipient: poolState.address,
         amountsIn: [{ address: poolState.tokens[0].address, decimals: 18, rawAmount: 1n }],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 

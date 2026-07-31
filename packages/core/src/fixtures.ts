@@ -7,8 +7,18 @@ export const weightedPoolFixture: PoolData = {
   protocolVersion: 2,
   type: 'Weighted',
   tokens: [
-    { address: '0x2222222222222222222222222222222222222222', decimals: 18, symbol: 'WETH', index: 0 },
-    { address: '0x3333333333333333333333333333333333333333', decimals: 6, symbol: 'USDC', index: 1 },
+    {
+      address: '0x2222222222222222222222222222222222222222',
+      decimals: 18,
+      symbol: 'WETH',
+      index: 0,
+    },
+    {
+      address: '0x3333333333333333333333333333333333333333',
+      decimals: 6,
+      symbol: 'USDC',
+      index: 1,
+    },
   ],
   dynamicData: { totalLiquidity: '1000000', swapEnabled: true },
 }

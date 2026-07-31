@@ -5,5 +5,5 @@ export * from './errors'
 export * from './fixtures'
 export * from './pool'
 export * from './types'
-export * from "./removeLiquidity";
-export * from "./permit2";
+export * from './removeLiquidity'
+export * from './permit2'

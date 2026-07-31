@@ -7,8 +7,26 @@ const poolState = createV3BoostedPoolState({
   id: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   tokens: [
-    { address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', decimals: 18, symbol: 'waUSDC', underlyingToken: { address: '0xcccccccccccccccccccccccccccccccccccccccc', decimals: 6, symbol: 'USDC' } },
-    { address: '0xdddddddddddddddddddddddddddddddddddddddd', decimals: 18, symbol: 'waUSDT', underlyingToken: { address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 6, symbol: 'USDT' } },
+    {
+      address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      decimals: 18,
+      symbol: 'waUSDC',
+      underlyingToken: {
+        address: '0xcccccccccccccccccccccccccccccccccccccccc',
+        decimals: 6,
+        symbol: 'USDC',
+      },
+    },
+    {
+      address: '0xdddddddddddddddddddddddddddddddddddddddd',
+      decimals: 18,
+      symbol: 'waUSDT',
+      underlyingToken: {
+        address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        decimals: 6,
+        symbol: 'USDT',
+      },
+    },
   ],
 })
 
@@ -24,7 +42,7 @@ describe('V3 boosted proportional remove liquidity', () => {
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 1n },
         tokensOut: [poolState.tokens[0].address, poolState.tokens[1].address],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 
@@ -39,7 +57,7 @@ describe('V3 boosted proportional remove liquidity', () => {
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 0n },
         tokensOut: [poolState.tokens[0].address, poolState.tokens[1].address],
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('bptIn')
   })
 

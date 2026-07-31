@@ -1,13 +1,14 @@
 # Balancer Liquidity Kit
 
-A standalone, headless integration layer for Balancer liquidity actions. Provides quoting, transaction construction, and approval planning for third-party apps.
+A standalone, headless integration layer for Balancer liquidity actions. Provides quoting,
+transaction construction, and approval planning for third-party apps.
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@balancer/liquidity-kit-core` | Framework-agnostic TypeScript package — quotes, plans, calldata |
-| `@balancer/liquidity-kit-react` | Optional React hooks with loading/error state |
+| Package                         | Description                                                     |
+| ------------------------------- | --------------------------------------------------------------- |
+| `@balancer/liquidity-kit-core`  | Framework-agnostic TypeScript package — quotes, plans, calldata |
+| `@balancer/liquidity-kit-react` | Optional React hooks with loading/error state                   |
 
 ## Features
 

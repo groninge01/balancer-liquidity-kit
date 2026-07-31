@@ -14,13 +14,20 @@ export function createBalancerApiClient(options: ApiClientOptions): BalancerApiC
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), timeoutMs)
         try {
-          const response = await fetchImpl(`${baseUrl}${path}`, { ...init, signal: controller.signal })
+          const response = await fetchImpl(`${baseUrl}${path}`, {
+            ...init,
+            signal: controller.signal,
+          })
           if (response.ok) return (await response.json()) as T
           if (response.status < 500 && response.status !== 429) {
-            throw createLiquidityKitError('QUOTE_FAILED', `Balancer API returned ${response.status}`, {
-              details: { status: response.status },
-              retryable: false,
-            })
+            throw createLiquidityKitError(
+              'QUOTE_FAILED',
+              `Balancer API returned ${response.status}`,
+              {
+                details: { status: response.status },
+                retryable: false,
+              }
+            )
           }
           lastError = new Error(`Balancer API returned ${response.status}`)
         } catch (error) {
@@ -29,7 +36,9 @@ export function createBalancerApiClient(options: ApiClientOptions): BalancerApiC
           clearTimeout(timeout)
         }
       }
-      throw createLiquidityKitError('QUOTE_FAILED', 'Balancer API request failed', { cause: lastError })
+      throw createLiquidityKitError('QUOTE_FAILED', 'Balancer API request failed', {
+        cause: lastError,
+      })
     },
   }
 }

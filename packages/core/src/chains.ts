@@ -10,7 +10,12 @@ export type ChainConfig = {
   supportsV3: boolean
 }
 
-function buildChainConfig(chainId: number, name: string, supportsV2: boolean, supportsV3: boolean): ChainConfig {
+function buildChainConfig(
+  chainId: number,
+  name: string,
+  supportsV2: boolean,
+  supportsV3: boolean
+): ChainConfig {
   return {
     chainId,
     name,
@@ -39,7 +44,7 @@ export const supportedChains: readonly ChainConfig[] = [
 export { ZERO_ADDRESS as zeroAddress }
 
 export function getChainConfig(chainId: number): ChainConfig | undefined {
-  return supportedChains.find((c) => c.chainId === chainId)
+  return supportedChains.find(c => c.chainId === chainId)
 }
 
 export function isSupportedChain(chainId: number): boolean {

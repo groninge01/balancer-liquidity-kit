@@ -24,7 +24,7 @@ describe('V2 weighted single-token remove liquidity', () => {
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 1n },
         tokenOut: poolState.tokens[0].address,
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 
@@ -39,7 +39,7 @@ describe('V2 weighted single-token remove liquidity', () => {
         bptIn: { address: poolState.address, decimals: 18, rawAmount: 0n },
         tokenOut: poolState.tokens[0].address,
         slippage: { percentage: '1' },
-      }),
+      })
     ).rejects.toThrow('bptIn')
   })
 

@@ -4,7 +4,6 @@ import {
   Slippage,
   type AddLiquidityBaseBuildCallInput,
   type AddLiquidityBuildCallOutput,
-  type AddLiquidityQueryOutput,
   type Permit2,
   type PublicWalletClient,
 } from '@balancer/sdk'
@@ -12,7 +11,7 @@ import type { Account, Address } from 'viem'
 import { getChainConfig, zeroAddress } from './chains'
 import { createLiquidityKitError } from './errors'
 import type { Slippage as KitSlippage } from './types'
-import type { AddLiquidityQuote, AddLiquidityInput } from './addLiquidity'
+import type { AddLiquidityQuote } from './addLiquidity'
 
 export type Permit2Plan = {
   permit2: Permit2
@@ -34,8 +33,18 @@ export type SignPermit2Input = {
 
 export async function signAddLiquidityPermit2(input: SignPermit2Input): Promise<Permit2> {
   const chain = getChainConfig(input.chainId)
-  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
-  if (chain.permit2 === zeroAddress) throw createLiquidityKitError('UNSUPPORTED_POOL', `Permit2 is not supported on chain ${input.chainId}`, { retryable: false })
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (chain.permit2 === zeroAddress) {
+    throw createLiquidityKitError(
+      'UNSUPPORTED_POOL',
+      `Permit2 is not supported on chain ${input.chainId}`,
+      { retryable: false }
+    )
+  }
   const buildCallInput = {
     ...input.quote.sdk,
     slippage: Slippage.fromPercentage(input.slippage.percentage),
@@ -56,7 +65,7 @@ export function buildAddLiquidityWithPermit2(
   slippage: KitSlippage,
   sender: Address,
   recipient: Address,
-  wethIsEth?: boolean,
+  wethIsEth?: boolean
 ): Permit2Plan {
   const call = new AddLiquidity().buildCallWithPermit2(
     {
@@ -66,7 +75,7 @@ export function buildAddLiquidityWithPermit2(
       sender,
       recipient,
     } as unknown as never,
-    permit2,
+    permit2
   )
   return { permit2, call }
 }

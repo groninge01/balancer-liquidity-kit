@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getChainConfig, zeroAddress } from '../chains'
 import { signAddLiquidityPermit2 } from '../permit2'
-import { createWeightedPoolState, quoteV2WeightedAddLiquidity, type AddLiquidityQuote } from '../addLiquidity'
+import { createWeightedPoolState, type AddLiquidityQuote } from '../addLiquidity'
 
 const poolState = createWeightedPoolState({
   id: '0x1111111111111111111111111111111111111111111111111111111111111111',
@@ -23,7 +23,7 @@ describe('Permit2', () => {
         slippage: { percentage: '1' },
         sender: poolState.address,
         recipient: poolState.address,
-      }),
+      })
     ).rejects.toThrow('Chain 99999')
   })
 
@@ -37,7 +37,7 @@ describe('Permit2', () => {
         slippage: { percentage: '1' },
         sender: poolState.address,
         recipient: poolState.address,
-      }),
+      })
     ).rejects.toThrow('Permit2 is not supported')
   })
 

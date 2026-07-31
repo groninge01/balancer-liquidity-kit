@@ -1,9 +1,6 @@
 import type { LiquidityKitError, LiquidityKitErrorCode } from './types'
 
-const retryableCodes = new Set<LiquidityKitErrorCode>([
-  'QUOTE_FAILED',
-  'SIMULATION_FAILED',
-])
+const retryableCodes = new Set<LiquidityKitErrorCode>(['QUOTE_FAILED', 'SIMULATION_FAILED'])
 
 export function createLiquidityKitError(
   code: LiquidityKitErrorCode,
@@ -12,7 +9,7 @@ export function createLiquidityKitError(
     cause?: unknown
     details?: Record<string, unknown>
     retryable?: boolean
-  } = {},
+  } = {}
 ): LiquidityKitError {
   return {
     code,
@@ -25,7 +22,7 @@ export function createLiquidityKitError(
 
 export function normalizeError(
   error: unknown,
-  fallbackCode: LiquidityKitErrorCode = 'TRANSACTION_FAILED',
+  fallbackCode: LiquidityKitErrorCode = 'TRANSACTION_FAILED'
 ): LiquidityKitError {
   if (
     typeof error === 'object' &&
