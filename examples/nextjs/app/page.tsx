@@ -123,6 +123,7 @@ export default function Page() {
   const [txHash, setTxHash] = useState<string | undefined>()
   const [balances, setBalances] = useState<bigint[]>([])
   const [allowances, setAllowances] = useState<bigint[]>([])
+  const [bptBalance, setBptBalance] = useState<bigint | undefined>()
 
   const pool = POOLS[poolIdx]
   const tokenSymbols = pool.tokens.map(t => t.symbol)
@@ -170,6 +171,18 @@ export default function Page() {
         }
       }
       if (!cancelled) setBalances(bals)
+        // Fetch BPT balance
+        try {
+          const bptBal = (await publicClient!.readContract({
+            address: pool.address as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [address!],
+        })) as bigint
+        if (!cancelled) setBptBalance(bptBal)
+      } catch {
+        if (!cancelled) setBptBalance(0n)
+      }
     }
     fetchBalances()
     return () => { cancelled = true }
@@ -206,6 +219,9 @@ export default function Page() {
         const input = parseUnits(amounts[i] || '0', token.decimals)
         return balances[i] !== undefined && input > balances[i]
       })
+    }
+    if (action === 'remove' && bptBalance !== undefined) {
+        return parseUnits(bptAmount || '0', 18) > bptBalance
     }
     return false
   }
@@ -524,7 +540,22 @@ export default function Page() {
             })
           ) : (
             <div className="input-group">
-              <label>BPT to burn (18 decimals)</label>
+              <label>
+                  BPT to burn (18 decimals)
+                {bptBalance !== undefined && (
+                  <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        color:
+                          bptBalance < parseUnits(bptAmount || '0', 18)
+                            ? '#ef4444'
+                            : '#888',
+                      }}
+                    >
+                      Balance: {formatUnits(bptBalance, 18)}
+                  </span>
+                )}
+              </label>
               <div className="token-row">
                 <input
                   onChange={e => setBptAmount(e.target.value)}
@@ -535,6 +566,12 @@ export default function Page() {
                 />
                 <span>BPT</span>
               </div>
+              {bptBalance !== undefined &&
+                bptBalance < parseUnits(bptAmount || '0', 18) && (
+                  <p className="error" style={{ fontSize: '0.8rem' }}>
+                    Insufficient BPT balance
+                  </p>
+                )}
             </div>
           )}
           <div className="input-group">
