@@ -25,9 +25,9 @@ describe('chains', () => {
     expect(isSupportedChain(99999)).toBe(false)
   })
 
-  it('supports all Balancer frontend chains', () => {
-    const v2Chains = [1, 10, 100, 137, 146, 250, 252, 8453, 34443, 42161, 43114, 11155111]
-    const v3Chains = [143, 999, 9745, 196]
+  it('supports all active Balancer chains', () => {
+    const v2Chains = [1, 10, 100, 137, 8453, 42161, 43114, 11155111]
+    const v3Chains = [143, 999, 9745]
     for (const chainId of v2Chains) {
       expect(isSupportedChain(chainId)).toBe(true)
     }
@@ -36,32 +36,32 @@ describe('chains', () => {
     }
   })
 
-  it('does not include chains not in frontend config', () => {
+  it('does not include deprecated or non-Balancer chains', () => {
     expect(isSupportedChain(56)).toBe(false)
     expect(isSupportedChain(324)).toBe(false)
     expect(isSupportedChain(1101)).toBe(false)
+    expect(isSupportedChain(146)).toBe(false)
+    expect(isSupportedChain(250)).toBe(false)
+    expect(isSupportedChain(252)).toBe(false)
+    expect(isSupportedChain(34443)).toBe(false)
+    expect(isSupportedChain(196)).toBe(false)
   })
 
   it('reports Permit2 support correctly', () => {
     expect(getChainConfig(1)?.supportsPermit2).toBe(true)
     expect(getChainConfig(42161)?.supportsPermit2).toBe(true)
     expect(getChainConfig(137)?.supportsPermit2).toBe(false)
-    expect(getChainConfig(250)?.supportsPermit2).toBe(false)
-  })
-
-  it('uses Fantom-specific vault address', () => {
-    expect(getChainConfig(250)?.vault).toBe('0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce')
   })
 
   it('V3-only chains have zero-address vault', () => {
     expect(getChainConfig(143)?.vault).toBe('0x0000000000000000000000000000000000000000')
     expect(getChainConfig(999)?.vault).toBe('0x0000000000000000000000000000000000000000')
-    expect(getChainConfig(196)?.vault).toBe('0x0000000000000000000000000000000000000000')
   })
 
-  it('Plasma has V2 vault with V3 protocol', () => {
+  it('Plasma supports both V2 and V3', () => {
     expect(getChainConfig(9745)?.vault).toBe('0xBA12222222228d8Ba445958a75a0704d566BF2C8')
-    expect(getChainConfig(9745)?.protocolVersion).toBe(3)
+    expect(getChainConfig(9745)?.supportsV2).toBe(true)
+    expect(getChainConfig(9745)?.supportsV3).toBe(true)
   })
 })
 
