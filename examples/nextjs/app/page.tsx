@@ -29,7 +29,7 @@ export default function Page() {
   const { connectors, connect } = useConnect()
   const { disconnect } = useDisconnect()
   const walletClient = useWalletClient()
-  const publicClient = usePublicClient()
+  const publicClient = usePublicClient({ chainId: 11155111 })
 
   const [amounts, setAmounts] = useState<string[]>(['', ''])
   const [slippage, setSlippage] = useState('1')
