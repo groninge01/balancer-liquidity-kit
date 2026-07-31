@@ -11,6 +11,8 @@ import {
   type InputAmount,
   type PoolState,
   type PoolStateWithUnderlyings,
+  PriceImpact,
+  type PriceImpactAmount,
 } from '@balancer/sdk'
 import type { Address, Hex } from 'viem'
 import { getChainConfig } from './chains'
@@ -34,6 +36,7 @@ export type AddLiquidityQuote = {
   sdk: AddLiquidityQueryOutput
   bptOut: TokenAmount
   amountsIn: TokenAmount[]
+  priceImpact?: PriceImpactAmount
 }
 
 export type AddLiquidityPlan = {
@@ -119,7 +122,17 @@ export async function quoteV2WeightedAddLiquidity(
     },
     poolState
   )
-  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+  const priceImpact = await PriceImpact.addLiquidityUnbalanced(
+      {
+      chainId: input.chainId,
+        rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState
+  ).catch(() => undefined)
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn, priceImpact }
 }
 
 export async function buildV2WeightedAddLiquidity(
@@ -234,7 +247,17 @@ export async function quoteV2StableAddLiquidity(
     },
     poolState
   )
-  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+  const priceImpact = await PriceImpact.addLiquidityUnbalanced(
+      {
+      chainId: input.chainId,
+        rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState
+  ).catch(() => undefined)
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn, priceImpact }
 }
 
 export async function buildV2StableAddLiquidity(
@@ -325,7 +348,17 @@ export async function quoteV3WeightedAddLiquidity(
     },
     poolState
   )
-  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+  const priceImpact = await PriceImpact.addLiquidityUnbalanced(
+      {
+      chainId: input.chainId,
+        rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState
+  ).catch(() => undefined)
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn, priceImpact }
 }
 
 export async function buildV3WeightedAddLiquidity(
@@ -406,6 +439,7 @@ export type V3BoostedAddLiquidityQuote = {
   sdk: AddLiquidityBoostedQueryOutput
   bptOut: TokenAmount
   amountsIn: TokenAmount[]
+  priceImpact?: PriceImpactAmount
 }
 
 export type V3BoostedAddLiquidityPlan = {
@@ -440,7 +474,17 @@ export async function quoteV3BoostedAddLiquidity(
     },
     poolState
   )
-  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+  const priceImpact = await PriceImpact.addLiquidityUnbalancedBoosted(
+      {
+      chainId: input.chainId,
+        rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState
+  ).catch(() => undefined)
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn, priceImpact }
 }
 
 export async function buildV3BoostedAddLiquidity(

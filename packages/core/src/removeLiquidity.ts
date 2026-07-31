@@ -220,6 +220,67 @@ export function buildV2StableProportionalRemoval(
   return { quote, call }
 }
 
+export type V2StableSingleTokenRemoveLiquidityInput = {
+  pool: V2StablePool
+  chainId: number
+  rpcUrl: string
+  sender: Address
+  recipient: Address
+  bptIn: { address: Address; decimals: number; rawAmount: bigint }
+  tokenOut: Address
+  slippage: KitSlippage
+  wethIsEth?: boolean
+}
+
+export async function quoteV2StableSingleTokenRemoval(
+  input: V2StableSingleTokenRemoveLiquidityInput,
+  poolState: PoolState = input.pool
+): Promise<RemoveLiquidityQuote> {
+  const chain = getChainConfig(input.chainId)
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (input.bptIn.rawAmount <= 0n) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'bptIn must be greater than zero', {
+      retryable: false,
+    })
+  }
+  assertV2StablePool(poolState)
+  const bptIn: InputAmount = {
+    address: input.bptIn.address,
+    decimals: input.bptIn.decimals,
+    rawAmount: input.bptIn.rawAmount,
+  }
+  const result = await new RemoveLiquidity().query(
+    {
+      chainId: input.chainId,
+      rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      bptIn,
+      tokenOut: input.tokenOut,
+      kind: RemoveLiquidityKind.SingleTokenExactIn,
+    },
+    poolState
+  )
+  return { sdk: result, bptIn: result.bptIn, amountsOut: result.amountsOut }
+}
+
+export function buildV2StableSingleTokenRemoval(
+  input: V2StableSingleTokenRemoveLiquidityInput,
+  quote: RemoveLiquidityQuote
+): RemoveLiquidityPlan {
+  const call = new RemoveLiquidity().buildCall({
+    ...quote.sdk,
+    slippage: Slippage.fromPercentage(input.slippage.percentage),
+    sender: input.sender,
+    recipient: input.recipient,
+    wethIsEth: input.wethIsEth,
+  })
+  return { quote, call }
+}
+
 export type V3WeightedRemoveLiquidityInput = {
   pool: V3WeightedPool
   chainId: number
@@ -267,6 +328,66 @@ export async function quoteV3WeightedProportionalRemoval(
 
 export function buildV3WeightedProportionalRemoval(
   input: V3WeightedRemoveLiquidityInput,
+  quote: RemoveLiquidityQuote
+): RemoveLiquidityPlan {
+  const call = new RemoveLiquidity().buildCall({
+    ...quote.sdk,
+    slippage: Slippage.fromPercentage(input.slippage.percentage),
+    wethIsEth: input.wethIsEth,
+    userData: '0x',
+  })
+  return { quote, call }
+}
+
+export type V3WeightedSingleTokenRemoveLiquidityInput = {
+  pool: V3WeightedPool
+  chainId: number
+  rpcUrl: string
+  sender: Address
+  recipient: Address
+  bptIn: { address: Address; decimals: number; rawAmount: bigint }
+  tokenOut: Address
+  slippage: KitSlippage
+  wethIsEth?: boolean
+}
+
+export async function quoteV3WeightedSingleTokenRemoval(
+  input: V3WeightedSingleTokenRemoveLiquidityInput,
+  poolState: PoolState = input.pool
+): Promise<RemoveLiquidityQuote> {
+  const chain = getChainConfig(input.chainId)
+  if (!chain) {
+    throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, {
+      retryable: false,
+    })
+  }
+  if (input.bptIn.rawAmount <= 0n) {
+    throw createLiquidityKitError('INVALID_AMOUNT', 'bptIn must be greater than zero', {
+      retryable: false,
+    })
+  }
+  assertV3WeightedPool(poolState)
+  const bptIn: InputAmount = {
+    address: input.bptIn.address,
+    decimals: input.bptIn.decimals,
+    rawAmount: input.bptIn.rawAmount,
+  }
+  const result = await new RemoveLiquidity().query(
+    {
+      chainId: input.chainId,
+      rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      bptIn,
+      tokenOut: input.tokenOut,
+      kind: RemoveLiquidityKind.SingleTokenExactIn,
+    },
+    poolState
+  )
+  return { sdk: result, bptIn: result.bptIn, amountsOut: result.amountsOut }
+}
+
+export function buildV3WeightedSingleTokenRemoval(
+  input: V3WeightedSingleTokenRemoveLiquidityInput,
   quote: RemoveLiquidityQuote
 ): RemoveLiquidityPlan {
   const call = new RemoveLiquidity().buildCall({
