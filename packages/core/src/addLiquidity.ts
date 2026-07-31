@@ -1,13 +1,16 @@
 import {
   AddLiquidity,
+  AddLiquidityBoostedV3,
   AddLiquidityKind,
   Slippage,
   Token,
   TokenAmount,
+  type AddLiquidityBoostedQueryOutput,
   type AddLiquidityBuildCallOutput,
   type AddLiquidityQueryOutput,
   type InputAmount,
   type PoolState,
+  type PoolStateWithUnderlyings,
 } from '@balancer/sdk'
 import type { Address, Hex } from 'viem'
 import { getChainConfig } from './chains'
@@ -281,6 +284,99 @@ export async function buildV3WeightedAddLiquidity(
     slippage: Slippage.fromPercentage(input.slippage.percentage),
     wethIsEth: input.wethIsEth,
     userData: '0x',
+  })
+  return {
+    quote,
+    call,
+    approvals: input.amountsIn.map((amount) => ({
+      token: amount.address,
+      spender: call.to,
+      amount: amount.rawAmount,
+    })),
+  }
+}
+
+export type V3BoostedPool = PoolStateWithUnderlyings & { protocolVersion: 3; type: 'Boosted' }
+
+export function assertV3BoostedPool(pool: PoolStateWithUnderlyings): asserts pool is V3BoostedPool {
+  if (pool.protocolVersion !== 3 || pool.type !== 'Boosted')
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 boosted pool', { retryable: false })
+}
+
+export function createV3BoostedPoolState(input: {
+  id: Hex
+  address: Address
+  tokens: readonly { address: Address; decimals: number; symbol?: string; underlyingToken?: { address: Address; decimals: number; symbol?: string } | null }[]
+}): V3BoostedPool {
+  return {
+    id: input.id,
+    address: input.address,
+    type: 'Boosted',
+    protocolVersion: 3,
+    tokens: input.tokens.map((token, index) => ({
+      address: token.address,
+      decimals: token.decimals,
+      symbol: token.symbol,
+      index,
+      underlyingToken: token.underlyingToken
+        ? { address: token.underlyingToken.address, decimals: token.underlyingToken.decimals, symbol: token.underlyingToken.symbol, index: 0 }
+        : null,
+    })),
+  }
+}
+
+export type V3BoostedAddLiquidityInput = {
+  pool: V3BoostedPool
+  chainId: number
+  rpcUrl: string
+  sender: Address
+  recipient: Address
+  amountsIn: readonly { address: Address; decimals: number; rawAmount: bigint }[]
+  slippage: KitSlippage
+  wethIsEth?: boolean
+}
+
+export type V3BoostedAddLiquidityQuote = {
+  sdk: AddLiquidityBoostedQueryOutput
+  bptOut: TokenAmount
+  amountsIn: TokenAmount[]
+}
+
+export type V3BoostedAddLiquidityPlan = {
+  quote: V3BoostedAddLiquidityQuote
+  call: AddLiquidityBuildCallOutput
+  approvals: readonly { token: Address; spender: Address; amount: bigint }[]
+}
+
+export async function quoteV3BoostedAddLiquidity(
+  input: V3BoostedAddLiquidityInput,
+  poolState: PoolStateWithUnderlyings = input.pool,
+): Promise<V3BoostedAddLiquidityQuote> {
+  const chain = getChainConfig(input.chainId)
+  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
+  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  assertV3BoostedPool(poolState)
+  const result = await new AddLiquidityBoostedV3().query(
+    {
+      chainId: input.chainId,
+      rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState,
+  )
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+}
+
+export async function buildV3BoostedAddLiquidity(
+  input: V3BoostedAddLiquidityInput,
+  quote: V3BoostedAddLiquidityQuote,
+): Promise<V3BoostedAddLiquidityPlan> {
+  const call = new AddLiquidityBoostedV3().buildCall({
+    ...quote.sdk,
+    slippage: Slippage.fromPercentage(input.slippage.percentage),
+    wethIsEth: input.wethIsEth,
   })
   return {
     quote,
