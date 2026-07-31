@@ -6,7 +6,8 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx"
   },
-  "include": ["packages/**/*.ts", "vitest.config.ts"]
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "vitest.config.ts"]
 }
