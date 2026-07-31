@@ -213,3 +213,82 @@ export async function buildV2StableAddLiquidity(
     })),
   }
 }
+
+export type V3WeightedPool = PoolState & { protocolVersion: 3; type: 'Weighted' }
+
+export function assertV3WeightedPool(pool: PoolState): asserts pool is V3WeightedPool {
+  if (pool.protocolVersion !== 3 || pool.type !== 'Weighted')
+    throw createLiquidityKitError('UNSUPPORTED_POOL', 'Pool must be a V3 weighted pool', { retryable: false })
+}
+
+export function createV3WeightedPoolState(input: {
+  id: Hex
+  address: Address
+  tokens: readonly { address: Address; decimals: number; symbol?: string }[]
+}): V3WeightedPool {
+  return {
+    id: input.id,
+    address: input.address,
+    type: 'Weighted',
+    protocolVersion: 3,
+    tokens: input.tokens.map((token, index) => ({
+      address: token.address,
+      decimals: token.decimals,
+      symbol: token.symbol,
+      index,
+    })),
+  }
+}
+
+export type V3WeightedAddLiquidityInput = {
+  pool: V3WeightedPool
+  chainId: number
+  rpcUrl: string
+  sender: Address
+  recipient: Address
+  amountsIn: readonly { address: Address; decimals: number; rawAmount: bigint }[]
+  slippage: KitSlippage
+  wethIsEth?: boolean
+}
+
+export async function quoteV3WeightedAddLiquidity(
+  input: V3WeightedAddLiquidityInput,
+  poolState: PoolState = input.pool,
+): Promise<AddLiquidityQuote> {
+  const chain = getChainConfig(input.chainId)
+  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
+  if (!input.amountsIn.length) throw createLiquidityKitError('INVALID_AMOUNT', 'amountsIn must not be empty', { retryable: false })
+  assertV3WeightedPool(poolState)
+  const result = await new AddLiquidity().query(
+    {
+      chainId: input.chainId,
+      rpcUrl: input.rpcUrl,
+      sender: input.sender,
+      amountsIn: input.amountsIn.map(toInputAmount),
+      kind: AddLiquidityKind.Unbalanced,
+    },
+    poolState,
+  )
+  return { sdk: result, bptOut: result.bptOut, amountsIn: result.amountsIn }
+}
+
+export async function buildV3WeightedAddLiquidity(
+  input: V3WeightedAddLiquidityInput,
+  quote: AddLiquidityQuote,
+): Promise<AddLiquidityPlan> {
+  const call = new AddLiquidity().buildCall({
+    ...quote.sdk,
+    slippage: Slippage.fromPercentage(input.slippage.percentage),
+    wethIsEth: input.wethIsEth,
+    userData: '0x',
+  })
+  return {
+    quote,
+    call,
+    approvals: input.amountsIn.map((amount) => ({
+      token: amount.address,
+      spender: call.to,
+      amount: amount.rawAmount,
+    })),
+  }
+}
