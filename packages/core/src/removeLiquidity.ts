@@ -1,10 +1,13 @@
 import {
   RemoveLiquidity,
+  RemoveLiquidityBoostedV3,
   RemoveLiquidityKind,
   Slippage,
   TokenAmount,
   type InputAmount,
   type PoolState,
+  type PoolStateWithUnderlyings,
+  type RemoveLiquidityBoostedQueryOutput,
   type RemoveLiquidityBuildCallOutput,
   type RemoveLiquidityQueryOutput,
 } from '@balancer/sdk'
@@ -12,7 +15,7 @@ import type { Address, Hex } from 'viem'
 import { getChainConfig } from './chains'
 import { createLiquidityKitError } from './errors'
 import type { Slippage as KitSlippage } from './types'
-import { assertV2WeightedPool, assertV2StablePool, assertV3WeightedPool, type V2WeightedPool, type V2StablePool, type V3WeightedPool } from './addLiquidity'
+import { assertV2WeightedPool, assertV2StablePool, assertV3WeightedPool, assertV3BoostedPool, type V2WeightedPool, type V2StablePool, type V3WeightedPool, type V3BoostedPool } from './addLiquidity'
 
 export type RemoveLiquidityInput = {
   pool: V2WeightedPool
@@ -189,6 +192,57 @@ export function buildV3WeightedProportionalRemoval(
     slippage: Slippage.fromPercentage(input.slippage.percentage),
     wethIsEth: input.wethIsEth,
     userData: '0x',
+  })
+  return { quote, call }
+}
+
+export type V3BoostedRemoveLiquidityInput = {
+  pool: V3BoostedPool
+  chainId: number
+  rpcUrl: string
+  sender: Address
+  recipient: Address
+  bptIn: { address: Address; decimals: number; rawAmount: bigint }
+  tokensOut: Address[]
+  slippage: KitSlippage
+  wethIsEth?: boolean
+}
+
+export type V3BoostedRemoveLiquidityQuote = {
+  sdk: RemoveLiquidityBoostedQueryOutput
+  bptIn: TokenAmount
+  amountsOut: TokenAmount[]
+}
+
+export type V3BoostedRemoveLiquidityPlan = {
+  quote: V3BoostedRemoveLiquidityQuote
+  call: RemoveLiquidityBuildCallOutput
+}
+
+export async function quoteV3BoostedProportionalRemoval(
+  input: V3BoostedRemoveLiquidityInput,
+  poolState: PoolStateWithUnderlyings = input.pool,
+): Promise<V3BoostedRemoveLiquidityQuote> {
+  const chain = getChainConfig(input.chainId)
+  if (!chain) throw createLiquidityKitError('UNSUPPORTED_CHAIN', `Chain ${input.chainId} is not supported`, { retryable: false })
+  if (input.bptIn.rawAmount <= 0n) throw createLiquidityKitError('INVALID_AMOUNT', 'bptIn must be greater than zero', { retryable: false })
+  assertV3BoostedPool(poolState)
+  const bptIn: InputAmount = { address: input.bptIn.address, decimals: input.bptIn.decimals, rawAmount: input.bptIn.rawAmount }
+  const result = await new RemoveLiquidityBoostedV3().query(
+    { chainId: input.chainId, rpcUrl: input.rpcUrl, sender: input.sender, bptIn, tokensOut: input.tokensOut, kind: RemoveLiquidityKind.Proportional },
+    poolState,
+  )
+  return { sdk: result, bptIn: result.bptIn, amountsOut: result.amountsOut }
+}
+
+export function buildV3BoostedProportionalRemoval(
+  input: V3BoostedRemoveLiquidityInput,
+  quote: V3BoostedRemoveLiquidityQuote,
+): V3BoostedRemoveLiquidityPlan {
+  const call = new RemoveLiquidityBoostedV3().buildCall({
+    ...quote.sdk,
+    slippage: Slippage.fromPercentage(input.slippage.percentage),
+    wethIsEth: input.wethIsEth,
   })
   return { quote, call }
 }
